@@ -39,23 +39,23 @@ function get_paddings(u::Real)
 end
 
 """
-    npos(v, beginoffset, endoffset, relmin, relmax)
+    npos(v, beginoffset, endoffset, vmin, vmax)
 
 Proportional transformation to map the coordinate to the pixel position.
 
-    * `beginoffset` and `endoffset` are the paddings defining the pixel window
+    * `beginoffset` and `endoffset` are the offsets defining the pixel window
     to draw onto.
-    * `relmin` and `relmax` are the values to be taken to `beginoffset` and
+    * `vmin` and `vmax` are the values to be taken to `beginoffset` and
     `endoffset`, respectively.
     * `v` is the coordinate value we want to map from.
 """
-function npos(v, beginoffset, endoffset, relmin, relmax)
-    return  beginoffset .+ (endoffset - beginoffset) * (v - relmin)/(relmax - relmin)
+function npos(v, beginoffset, endoffset, vmin, vmax)
+    return  beginoffset .+ (endoffset - beginoffset) * (v - vmin)/(vmax - vmin)
 end
 
 function crplot(
     x, y; Nx=512, Ny=384, title="", xticks=nothing, yticks=nothing,
-    padding = 0.06
+    padding=0.01
     )
 
     c = CairoRGBSurface(Nx,Ny)
@@ -81,14 +81,14 @@ function crplot(
     titlespacing = 0.01
     ticklength = 0.02*min(Nx,Ny)
     innerpadding = 0.03
-    thickpadding = 0.02
+    tickvaluepadding = 0.01
 
     # background for frame around plot
     rectangle(ctx,0.0,0.0,Nx,Ny)
     set_source_rgb(ctx, background_frame_color...)
     fill(ctx)
 
-    # show title and calculate topoffset (top offset from frame to canvas)
+    # show title and calculate top offset (top offset from frame to canvas)
     titlelines = strip.(split(title, '\n'))
     set_font_size(ctx, titlesize)
     select_font_face(ctx, "JuliaMono", Cairo.FONT_SLANT_NORMAL, Cairo.FONT_WEIGHT_BOLD)
@@ -114,7 +114,12 @@ function crplot(
         ymin -= innerpadding*yspan
     end
 
-    # calculate remaining offsets
+    # Set tick values offsets
+    xvalueoffset = tickvaluepadding*Nx
+    yvalueoffset = tickvaluepadding*Ny
+
+
+    # calculate left offset
     leftoffset = 0.0 
     if yticks !== nothing
         for yt in yticks
@@ -123,10 +128,21 @@ function crplot(
             end
         end
     end
-    leftoffset += 2leftpadding*Nx
+    leftoffset += xvalueoffset + leftpadding*Nx
+
+    # calculate bottom offset
+    bottomoffset = 0.0
+    if xticks !== nothing
+        for xt in xticks
+            if xmin ≤ xt ≤ xmax
+                bottomoffset = max(bottomoffset, text_extents(ctx, string(xt))[3])
+            end
+        end
+    end
+    bottomoffset += yvalueoffset + bottompadding*Ny
+
+    # set right offset
     rightoffset = rightpadding*Nx
-    bottomoffset = bottompadding*Ny
-    thickoffset = thickpadding*Ny
 
     # background for plot
     rectangle(ctx,leftoffset,topoffset,Nx-rightoffset-leftoffset,Ny-bottomoffset-topoffset)
@@ -170,7 +186,7 @@ function crplot(
 
                 # show tick value
                 height = text_extents(ctx, string(xt))[4]
-                move_to(ctx, nt, Ny-bottomoffset+thickoffset+height)
+                move_to(ctx, nt, Ny-bottomoffset+yvalueoffset+height)
                 set_source_rgb(ctx, tickvalues_color...)
                 show_text(ctx,string(xt))
             end
@@ -205,7 +221,7 @@ function crplot(
 
                 # show tick value
                 width = text_extents(ctx, string(yt))[3]
-                move_to(ctx, leftoffset-thickoffset-width, nt)
+                move_to(ctx, leftoffset-xvalueoffset-width, nt)
                 set_source_rgb(ctx, tickvalues_color...)
                 show_text(ctx, string(yt))
             end
