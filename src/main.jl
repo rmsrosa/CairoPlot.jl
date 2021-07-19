@@ -38,6 +38,28 @@ function get_paddings(u::Real)
     return get_paddings(Tuple(u))
 end
 
+function get_limits(v::AbstractVector{<:Number})
+    vmin, vmax = minimum(v), maximum(v)
+    if vmin ≈ vmax
+        let vunit = oneunit(v)
+            vmin -= vunit
+            vmax += vunit
+        end
+    end
+    return vmin, vmax
+end
+
+function get_limits(v::AbstractVector{<:Date})
+    vmin, vmax = minimum(v), maximum(v)
+    if vmin == vmax
+        let vunit = oneunit(vmax - vmin)
+            vmin -= vunit
+            vmax += vunit
+        end
+    end
+    return vmin, vmax
+end
+
 """
     npos(v, beginoffset, endoffset, vmin, vmax)
 
@@ -57,13 +79,29 @@ function npos(v::Date, beginoffset, endoffset, vmin::Date, vmax::Date)
     return  beginoffset .+ (endoffset - beginoffset) * (v - vmin).value/(vmax - vmin).value
 end
 
+function get_tickvalues(vmin::Number, vmax::Number, nticks::Int)
+    tstep = round(( vmax - vmin ) / nticks, sigdigits = 1)
+    tickvalues = round(vmin, sigdigits=1) : tstep : round(vmax, sigdigits=1)
+    return tickvalues
+end
+
+function get_tickvalues(vmin::Date, vmax::Date, nticks::Int)
+    tstep = div( ( vmax - vmin ), nticks)
+    tickvalues = vmin : tstep : vmax
+    return tickvalues
+end
+
 function crplot(
-    x, y; Nx=512, Ny=384, title="", xticks=nothing, yticks=nothing,
-    padding=0.01
+    x, y; Nx=512, Ny=384, title="", xticks=6, yticks=4,
+    padding=(0.01, 0.04, 0.02, 0.01),
+    titlefontsize = 12, tickfontsize = 10, fontface = "JuliaMono"
     )
 
     c = CairoRGBSurface(Nx,Ny)
     ctx = CairoContext(c)
+
+    # Set font face
+    select_font_face(ctx, fontface, Cairo.FONT_SLANT_NORMAL, Cairo.FONT_WEIGHT_BOLD)
 
     # colors
     background_frame_color = (0.25,0.25,0.25)
@@ -77,7 +115,6 @@ function crplot(
     guide_lines_width = 1.0
     bar_width = 0.1
     series_width = 2.0
-    titlesize = 12
 
     # paddings and tick length
     toppadding, rightpadding, bottompadding, leftpadding = get_paddings(padding)
@@ -97,9 +134,8 @@ function crplot(
     yinneroffset = innerpadding * Ny
 
     # show title and calculate top offset (top offset from frame to canvas)
+    set_font_size(ctx, titlefontsize)
     titlelines = strip.(split(title, '\n'))
-    set_font_size(ctx, titlesize)
-    select_font_face(ctx, "JuliaMono", Cairo.FONT_SLANT_NORMAL, Cairo.FONT_WEIGHT_BOLD)
     set_source_rgb(ctx, title_color...)
     Nw = 0.0
     topoffset = (toppadding+titlepadding)*Ny
@@ -113,8 +149,8 @@ function crplot(
     topoffset += (toppadding+titlepadding)*Ny
 
     # calculate plot size
-    xmin, xmax = minimum(x), maximum(x)
-    ymin, ymax = minimum(y), maximum(y)
+    xmin, xmax = get_limits(x)
+    ymin, ymax = get_limits(y)
 
     # Set tick values offsets
     xvalueoffset = tickvaluepadding*Nx
@@ -124,17 +160,29 @@ function crplot(
     if xticks !== nothing
         if xticks isa AbstractVector
             xtickvalues = xticks
+        elseif xticks isa Int
+            xtickvalues = get_tickvalues(xmin, xmax, xticks)
         else
-            xtickvalues = get_tickvalues(x)
+            throw(Argument(
+                "`xticks` should be one of the following:\n" *
+                "  `nothing`,\n  an `AbstractVector`,\n  an `Int`.")
+            )
         end
     end
     if yticks !== nothing
         if yticks isa AbstractVector
             ytickvalues = yticks
+        elseif yticks isa Int
+            ytickvalues = get_tickvalues(ymin, ymax, yticks)
         else
-            ytickvalues = get_tickvalues(y)
+            throw(Argument(
+                "`yticks` should be one of the following:\n" *
+                "  `nothing`,\n  an `AbstractVector`,\n  an `Int`.")
+            )
         end
     end
+
+    set_font_size(ctx, tickfontsize)
 
     # calculate left offset
     leftoffset = 0.0 
@@ -157,14 +205,14 @@ function crplot(
     # set right offset
     rightoffset = rightpadding*Nx
 
-    # calculate tick values
+#=     # calculate tick values
     if xticks !== nothing
         xtickvalues = xticks
     end
 
     if yticks !== nothing
         ytickvalues = yticks
-    end
+    end =#
 
     # background for plot
     rectangle(ctx,leftoffset,topoffset,Nx-rightoffset-leftoffset,Ny-bottomoffset-topoffset)
