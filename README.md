@@ -8,7 +8,7 @@ It is still a work in progress and it is a not a registered package yet.
 
 Ops, I just found out that there is already the package [JuliaGraphics/Winston.jl](https://github.com/JuliaGraphics/Winston.jl) that does that. 🤦‍♂️
 
-Hmm, but `Winston.jl` plots are not always as pretty; the identation for multiline plots are not correct, and I don't think the background color can be changed to dark, which is what suits Discord best (and the whole point for starting this). So I definitely should continue this project.
+Hmm, but `Winston.jl` plots are not always as pretty; the identation for multiline plots are not correct, and I don't think the background color can be changed to dark, which is what suits Discord best (for the [Humans-of-Julia/HoJBot.jl](https://github.com/Humans-of-Julia/HoJBot.jl), which was the whole point for starting this). So I definitely should continue this project.
 
 The package can be added with
 
