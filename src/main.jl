@@ -81,7 +81,7 @@ end
 
 function get_tickvalues(vmin::Number, vmax::Number, nticks::Int)
     tstep = round(( vmax - vmin ) / nticks, sigdigits = 1)
-    tickvalues = round(vmin, sigdigits=1) : tstep : round(vmax, sigdigits=1)
+    tickvalues = floor(vmin, sigdigits=1) : tstep : ceil(vmax, sigdigits=1)
     return tickvalues
 end
 
@@ -93,7 +93,7 @@ end
 
 function crplot(
     x, y; Nx=512, Ny=384, title="", xticks=6, yticks=4,
-    padding=(0.01, 0.04, 0.02, 0.01),
+    padding=(0.01, 0.04, 0.02, 0.01), plotstyle = :lineplot, marker_width = 4,
     titlefontsize = 12, tickfontsize = 10, fontface = "JuliaMono"
     )
 
@@ -205,15 +205,6 @@ function crplot(
     # set right offset
     rightoffset = rightpadding*Nx
 
-#=     # calculate tick values
-    if xticks !== nothing
-        xtickvalues = xticks
-    end
-
-    if yticks !== nothing
-        ytickvalues = yticks
-    end =#
-
     # background for plot
     rectangle(ctx,leftoffset,topoffset,Nx-rightoffset-leftoffset,Ny-bottomoffset-topoffset)
     set_source_rgb(ctx,background_plot_color...)
@@ -304,14 +295,23 @@ function crplot(
         Nx - rightoffset - xinneroffset, xmin, xmax)
     ny = Ny .- npos.(y, bottomoffset + yinneroffset,
         Ny - topoffset - yinneroffset, ymin, ymax)
-    move_to(ctx, nx[1], ny[1])
-    for i in 2:length(nx)-1
-        line_to(ctx, nx[i+1], ny[i+1])
+    
+    set_source_rgb(ctx, series_color...)
+
+    if plotstyle == :lineplot
+        move_to(ctx, nx[1], ny[1])
+        for i in 2:length(nx)
+            line_to(ctx, nx[i], ny[i])
+        end
+        set_line_width(ctx, series_width)
+        stroke(ctx)
+    elseif plotstyle == :scatterplot
+        for i in 1:length(nx)
+            circle(ctx, nx[i], ny[i], marker_width)
+            fill(ctx)
+        end
     end
 
-    set_line_width(ctx, series_width)
-    set_source_rgb(ctx, series_color...)
-    stroke(ctx)
     # Cairo.save(ctx) # not sure if needed, but I saw it in examples; it saves the state internally
 
     return c
