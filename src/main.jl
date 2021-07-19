@@ -53,6 +53,10 @@ function npos(v, beginoffset, endoffset, vmin, vmax)
     return  beginoffset .+ (endoffset - beginoffset) * (v - vmin)/(vmax - vmin)
 end
 
+function npos(v::Date, beginoffset, endoffset, vmin::Date, vmax::Date)
+    return  beginoffset .+ (endoffset - beginoffset) * (v - vmin).value/(vmax - vmin).value
+end
+
 function crplot(
     x, y; Nx=512, Ny=384, title="", xticks=nothing, yticks=nothing,
     padding=0.01
@@ -88,6 +92,10 @@ function crplot(
     set_source_rgb(ctx, background_frame_color...)
     fill(ctx)
 
+    # inner offset
+    xinneroffset = innerpadding * Nx
+    yinneroffset = innerpadding * Ny
+
     # show title and calculate top offset (top offset from frame to canvas)
     titlelines = strip.(split(title, '\n'))
     set_font_size(ctx, titlesize)
@@ -104,28 +112,35 @@ function crplot(
     end
     topoffset += (toppadding+titlepadding)*Ny
 
-    # calculate chart dimensions
+    # calculate plot size
     xmin, xmax = minimum(x), maximum(x)
     ymin, ymax = minimum(y), maximum(y)
-    let xspan = xmax - xmin, yspan = ymax - ymin
-        xmax += innerpadding*xspan
-        xmin -= innerpadding*xspan
-        ymax += innerpadding*yspan
-        ymin -= innerpadding*yspan
-    end
 
     # Set tick values offsets
     xvalueoffset = tickvaluepadding*Nx
     yvalueoffset = tickvaluepadding*Ny
 
+    # calculate tick values
+    if xticks !== nothing
+        if xticks isa AbstractVector
+            xtickvalues = xticks
+        else
+            xtickvalues = get_tickvalues(x)
+        end
+    end
+    if yticks !== nothing
+        if yticks isa AbstractVector
+            ytickvalues = yticks
+        else
+            ytickvalues = get_tickvalues(y)
+        end
+    end
 
     # calculate left offset
     leftoffset = 0.0 
     if yticks !== nothing
-        for yt in yticks
-            if ymin ≤ yt ≤ ymax
-                leftoffset = max(leftoffset, text_extents(ctx, string(yt))[3])
-            end
+        for yt in ytickvalues
+            leftoffset = max(leftoffset, text_extents(ctx, string(yt))[3])
         end
     end
     leftoffset += xvalueoffset + leftpadding*Nx
@@ -133,16 +148,23 @@ function crplot(
     # calculate bottom offset
     bottomoffset = 0.0
     if xticks !== nothing
-        for xt in xticks
-            if xmin ≤ xt ≤ xmax
-                bottomoffset = max(bottomoffset, text_extents(ctx, string(xt))[3])
-            end
+        for xt in xtickvalues
+            bottomoffset = max(bottomoffset, text_extents(ctx, string(xt))[4])
         end
     end
     bottomoffset += yvalueoffset + bottompadding*Ny
 
     # set right offset
     rightoffset = rightpadding*Nx
+
+    # calculate tick values
+    if xticks !== nothing
+        xtickvalues = xticks
+    end
+
+    if yticks !== nothing
+        ytickvalues = yticks
+    end
 
     # background for plot
     rectangle(ctx,leftoffset,topoffset,Nx-rightoffset-leftoffset,Ny-bottomoffset-topoffset)
@@ -162,9 +184,10 @@ function crplot(
 
     # draw ticks and grid
     if xticks !== nothing
-        for xt in xticks
-            if xmin ≤ xt ≤ xmax
-                nt = npos(xt, leftoffset, Nx - rightoffset, xmin, xmax)
+        for xt in xtickvalues
+            nt = npos(xt, leftoffset + xinneroffset,
+                Nx - rightoffset - xinneroffset, xmin, xmax)
+            if leftoffset ≤ nt ≤ Nx - rightoffset
                 # draw bottom tick
                 move_to(ctx, nt, Ny - bottomoffset)
                 line_to(ctx, nt, Ny - bottomoffset - ticklength)
@@ -185,8 +208,8 @@ function crplot(
                 stroke(ctx)
 
                 # show tick value
-                height = text_extents(ctx, string(xt))[4]
-                move_to(ctx, nt, Ny-bottomoffset+yvalueoffset+height)
+                width, height = text_extents(ctx, string(xt))[3:4]
+                move_to(ctx, nt-width/2, Ny-bottomoffset+yvalueoffset+height)
                 set_source_rgb(ctx, tickvalues_color...)
                 show_text(ctx,string(xt))
             end
@@ -194,10 +217,10 @@ function crplot(
     end
 
     if yticks !== nothing
-        for yt in yticks
-            if ymin ≤ yt ≤ ymax
-                nt = Ny - npos(yt, bottomoffset, Ny-topoffset, ymin, ymax)
-
+        for yt in ytickvalues
+            nt = Ny - npos(yt, bottomoffset - yinneroffset,
+                Ny - topoffset - yinneroffset, ymin, ymax)
+            if topoffset ≤ nt ≤ Ny - bottomoffset
                 # draw left tick
                 move_to(ctx, leftoffset, nt)
                 line_to(ctx, leftoffset + ticklength, nt)
@@ -220,8 +243,8 @@ function crplot(
                 stroke(ctx)
 
                 # show tick value
-                width = text_extents(ctx, string(yt))[3]
-                move_to(ctx, leftoffset-xvalueoffset-width, nt)
+                width, height = text_extents(ctx, string(yt))[3:4]
+                move_to(ctx, leftoffset-xvalueoffset-width, nt+height/2)
                 set_source_rgb(ctx, tickvalues_color...)
                 show_text(ctx, string(yt))
             end
@@ -229,9 +252,10 @@ function crplot(
     end
 
     # draw series
-    nx = npos.(x, leftoffset, Nx - rightoffset, xmin, xmax)
-    ny = Ny .- npos.(y, bottomoffset, Ny - topoffset, ymin, ymax)
-
+    nx = npos.(x, leftoffset + xinneroffset,
+        Nx - rightoffset - xinneroffset, xmin, xmax)
+    ny = Ny .- npos.(y, bottomoffset + yinneroffset,
+        Ny - topoffset - yinneroffset, ymin, ymax)
     move_to(ctx, nx[1], ny[1])
     for i in 2:length(nx)-1
         line_to(ctx, nx[i+1], ny[i+1])

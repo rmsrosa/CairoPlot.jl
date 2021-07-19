@@ -3,6 +3,7 @@
 using .CairoPlot =#
 
 using Cairo
+using Dates
 
 include(joinpath("..", "src", "main.jl"))
 
@@ -23,5 +24,14 @@ xticks = 0:5:30
 yticks = -1.0:0.25:1.0
 c = crplot(x, y; xticks, yticks, Nx, Ny, title)
 write_to_png(c,"cairoplot_sineexample.png")
+
+xd = today():Year(1):today()+Year(20)
+yd = rand(length(xd))
+
+xdticks = today():Year(5):today()+Year(20)
+ydticks = 0.0:0.2:1.0
+
+c = crplot(xd, yd; xticks=xdticks, yticks=ydticks, title="Date evolution")
+write_to_png(c,"cairoplot_dateexample.png")
 
 nothing
