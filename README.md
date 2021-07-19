@@ -16,42 +16,53 @@ The package can be added with
 pkg> add https://github.com/rmsrosa/CairoPlot.jl
 ```
 
-Example:
+## Examples
 
 ```julia
-julia> using Cairo
-
-julia> using CairoPlot
-
-julia> Nx = 640
-640
-
-julia> Ny = 384
-384
-
-julia> title = "Plot of a sine wave"
-
-julia> x = range(0, 10π, length=200)
-0.0:0.1578689775673263:31.41592653589793
-
-julia> y = sin.(x)
-200-element Vector{Float64}:
-  0.0
-  0.15721404296725078
-  ⋮
- -1.2246467991473533e-15
-
-julia> xticks = 0:5:30
-0:5:30
-
-julia> yticks = -1.0:0.25:1.0
--1.0:0.25:1.0
-
-julia> c = crplot(x, y; xticks, yticks, Nx, Ny, title)
-Cairo.CairoSurfaceBase{UInt32}(Ptr{Nothing} @0x00007fa5e866a0e0, 640.0, 384.0)
-
-julia> write_to_png(c,"cairoplot_sinexample.png")
-0
+x = range(0, 10π, length=200)
+y = sin.(x)
+xticks = 0:5:30
+yticks = -1.0:0.25:1.0
+c = crplot(x, y; xticks, yticks, title = "Plot of a sine wave")
+write_to_png(c,"sineplot.png")
 ```
 
-![Example plot](scripts/cairoplot_sineexample.png)
+![sine plot](scripts/sineplot.png)
+
+```julia
+x = range(0, 10π, length=30)
+y = sin.(x/5) .+ 0.3randn(length(x))
+c = crplot(x, y; Nx = 600, Ny = 200, title = "Perturbation\n of a sine wave")
+write_to_png(c,"perturbedsineplot.png")
+```
+
+![perturbed sine](scripts/perturbedsineplot.png)
+
+```julia
+title = "Scattered perturbation\n of a sine wave"
+x = range(0, 10π, length=100)
+y = sin.(x/5) .+ 0.3randn(length(x))
+c = crplot(x, y; plotstyle = :scatterplot, Nx = 600, Ny = 200,
+    title = "Scattered perturbation\n of a sine wave")
+write_to_png(c,"scatteredperturbedsineplot.png")
+```
+
+![scattered perturbed sine](scripts/scatteredperturbedsineplot.png)
+
+```julia
+xd = today():Year(1):today()+Year(20)
+yd = rand(length(xd))
+c = crplot(xd, yd; title="Prediction for the next 20 years")
+write_to_png(c,"20years_future.png")
+```
+
+![20 years ahead](scripts/20years_future.png)
+
+```julia
+xd = today()-Month(1):Day(1):today()
+yd = 100.0 * rand(length(xd))
+c = crplot(xd, yd; xticks = 5, yticks = 10, title="One month evolution")
+write_to_png(c,"onemonth_past.png")
+```
+
+![past one month](scripts/onemonth_past.png)
