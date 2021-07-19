@@ -7,24 +7,23 @@ using Dates
 
 include(joinpath("..", "src", "main.jl"))
 
-title = "Plot of a sine wave"
 x = range(0, 10π, length=200)
 y = sin.(x)
 xticks = 0:5:30
 yticks = -1.0:0.25:1.0
-c = crplot(x, y; xticks, yticks, title)
+c = crplot(x, y; xticks, yticks, title = "Plot of a sine wave")
 write_to_png(c,"sineplot.png")
 
-title = "Perturbation\n of a sine wave"
 x = range(0, 10π, length=30)
 y = sin.(x/5) .+ 0.3randn(length(x))
-c = crplot(x, y; Nx = 600, Ny = 200, title)
+c = crplot(x, y; Nx = 600, Ny = 200, title = "Perturbation\n of a sine wave")
 write_to_png(c,"perturbedsineplot.png")
 
 title = "Scattered perturbation\n of a sine wave"
 x = range(0, 10π, length=100)
 y = sin.(x/5) .+ 0.3randn(length(x))
-c = crplot(x, y; plotstyle = :scatterplot, Nx = 600, Ny = 200, title)
+c = crplot(x, y; plotstyle = :scatterplot, Nx = 600, Ny = 200,
+    title = "Scattered perturbation\n of a sine wave")
 write_to_png(c,"scatteredperturbedsineplot.png")
 
 xd = today():Year(1):today()+Year(20)
