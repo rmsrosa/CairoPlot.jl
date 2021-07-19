@@ -8,7 +8,7 @@ It is still a work in progress and it is a not a registered package yet.
 
 Ops, I just found out that there is already the package [JuliaGraphics/Winston.jl](https://github.com/JuliaGraphics/Winston.jl) that does that. 🤦‍♂️
 
-Ok, I might continue with the project anyway, mostly as an exercise, but no point in registering it, thought.
+Hmm, but `Winston.jl` plots are not always as pretty; the identation for multiline plots are not correct, and I don't think the background color can be changed to dark, which is what suits Discord best (and the whole point for starting this). So I definitely should continue this project.
 
 The package can be added with
 
@@ -66,3 +66,7 @@ write_to_png(c,"onemonth_past.png")
 ```
 
 ![past one month](scripts/onemonth_past.png)
+
+## License
+
+This package is licensed under the [MIT license](https://opensource.org/licenses/MIT) (see file [LICENSE](LICENSE) in the root directory of the project).
