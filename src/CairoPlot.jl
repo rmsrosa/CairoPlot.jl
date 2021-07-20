@@ -4,6 +4,7 @@ using Cairo
 using Dates
 
 export crplot
+export write_to_png
 
 include("main.jl")
 
